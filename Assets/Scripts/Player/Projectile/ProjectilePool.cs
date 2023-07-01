@@ -17,12 +17,12 @@ namespace ServiceLocator.Player.Projectile
         private List<ProjectileScriptableObject> projectileScriptableObjects;
         private Transform projectileContainer;
 
-        public ProjectilePool(PlayerService playerService, ProjectileView projectilePrefab, List<ProjectileScriptableObject> projectileScriptableObjects)
+        public ProjectilePool(PlayerService playerService, ProjectileView projectilePrefab, List<ProjectileScriptableObject> projectileScriptableObjects, Transform projectileContainer)
         {
             this.playerService = playerService;
             this.projectilePrefab = projectilePrefab;
             this.projectileScriptableObjects = projectileScriptableObjects;
-            this.projectileContainer = new GameObject("Projectile Container").transform;
+            this.projectileContainer = projectileContainer;
         }
 
         public ProjectileController GetProjectile(ProjectileType projectileType)
