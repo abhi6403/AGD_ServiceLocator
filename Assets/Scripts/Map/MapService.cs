@@ -1,42 +1,31 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using ServiceLocator.Main;
+using ServiceLocator.Utilities;
 using ServiceLocator.Player;
 using ServiceLocator.Events;
 
 namespace ServiceLocator.Map
 {
-    public class MapService
+    public class MapService : GenericMonoSingleton<MapService>
     {
-        // Dependencies:
-        private EventService eventService;
-        private MapScriptableObject mapScriptableObject;
+        [SerializeField] private MapScriptableObject mapScriptableObject;
 
         private Grid currentGrid;
         private Tilemap currentTileMap;
         private MapData currentMapData;
-        private SpriteRenderer tileOverlay;
 
-        public MapService(MapScriptableObject mapScriptableObject)
+        private void Start()
         {
-            this.mapScriptableObject = mapScriptableObject;
-            tileOverlay = Object.Instantiate(mapScriptableObject.TileOverlay).GetComponent<SpriteRenderer>();
-            ResetTileOverlay();
-        }
-
-        public void Init(EventService eventService)
-        {
-            this.eventService = eventService;
             SubscribeToEvents();
         }
 
-        private void SubscribeToEvents() => eventService.OnMapSelected.AddListener(LoadMap);
+        private void SubscribeToEvents() => EventService.Instance.OnMapSelected.AddListener(LoadMap);
 
         private void LoadMap(int mapId)
         {
             currentMapData = mapScriptableObject.MapDatas.Find(mapData => mapData.MapID == mapId);
-            currentGrid = Object.Instantiate(currentMapData.MapPrefab);
+            currentGrid = Instantiate(currentMapData.MapPrefab);
             currentTileMap = currentGrid.GetComponentInChildren<Tilemap>();
         }
 
@@ -44,53 +33,15 @@ namespace ServiceLocator.Map
 
         public Vector3 GetBloonSpawnPositionForCurrentMap() => currentMapData.SpawningPoint;
 
-        private void ResetTileOverlay() => SetTileOverlayColor(TileOverlayColor.TRANSPARENT);
-
-        private void SetTileOverlayColor(TileOverlayColor colorToSet)
-        {
-            switch(colorToSet)
-            {
-                case TileOverlayColor.TRANSPARENT:
-                    tileOverlay.color = mapScriptableObject.DefaultTileColor;
-                    break;
-                case TileOverlayColor.SPAWNABLE:
-                    tileOverlay.color = mapScriptableObject.SpawnableTileColor;
-                    break;
-                case TileOverlayColor.NON_SPAWNABLE:
-                    tileOverlay.color = mapScriptableObject.NonSpawnableTileColor;
-                    break;
-            }
-        }
-
-        public void ValidateSpawnPosition(Vector3 cursorPosition)
-        {
-            Vector3 mousePosition = Camera.main.ScreenToWorldPoint(cursorPosition);
-            Vector3Int cellPosition = GetCellPosition(mousePosition);
-            Vector3 cellCenter = GetCenterOfCell(cellPosition);
-
-            if(CanSpawnOnPosition(cellCenter, cellPosition))
-            {
-                tileOverlay.transform.position = cellCenter;
-                SetTileOverlayColor(TileOverlayColor.SPAWNABLE);
-            }
-            else
-            {
-                tileOverlay.transform.position = cellCenter;
-                SetTileOverlayColor(TileOverlayColor.NON_SPAWNABLE);
-            }
-        }
-
         public bool TryGetMonkeySpawnPosition(Vector3 cursorPosition, out Vector3 spawnPosition)
         {
             Vector3 mousePosition = Camera.main.ScreenToWorldPoint(cursorPosition);
-            Vector3Int cellPosition = GetCellPosition(mousePosition);
-            Vector3 cellCenter = GetCenterOfCell(cellPosition);
+            Vector3Int mouseToCell = currentGrid.WorldToCell(new Vector3(mousePosition.x, mousePosition.y, 0));
+            Vector3 centerCell = currentGrid.GetCellCenterWorld(mouseToCell);
 
-            ResetTileOverlay();
-
-            if (CanSpawnOnPosition(cellCenter, cellPosition))
+            if (CanSpawnOnPosition(centerCell, mouseToCell))
             {
-                spawnPosition = cellCenter;
+                spawnPosition = centerCell;
                 return true;
             }
             else
@@ -99,10 +50,6 @@ namespace ServiceLocator.Map
                 return false;
             }
         }
-
-        private Vector3Int GetCellPosition(Vector3 mousePosition) => currentGrid.WorldToCell(new Vector3(mousePosition.x, mousePosition.y, 0));
-
-        private Vector3 GetCenterOfCell(Vector3Int cellPosition) => currentGrid.GetCellCenterWorld(cellPosition);
 
         private bool CanSpawnOnPosition(Vector3 centerCell, Vector3Int cellPosition)
         {
@@ -131,16 +78,11 @@ namespace ServiceLocator.Map
             foreach (Collider2D collider in colliders)
             {
                 if (collider.gameObject.GetComponent<MonkeyView>() != null && !collider.isTrigger)
+                {
                     return true;
+                }
             }
             return false;
-        }
-
-        private enum TileOverlayColor
-        {
-            TRANSPARENT,
-            SPAWNABLE,
-            NON_SPAWNABLE
         }
     }
 }

@@ -1,71 +1,61 @@
 using System.Collections.Generic;
 using UnityEngine;
 using ServiceLocator.Player.Projectile;
-using ServiceLocator.Map;
+using ServiceLocator.Utilities;
 using ServiceLocator.UI;
+using ServiceLocator.Map;
 using ServiceLocator.Sound;
 
 namespace ServiceLocator.Player
 {
-    public class PlayerService
+    public class PlayerService : GenericMonoSingleton<PlayerService>
     {
-        // Dependencies:
-        private MapService mapService;
-        private UIService uiService;
-        private SoundService soundService;
-        private PlayerScriptableObject playerScriptableObject;
+        [SerializeField] public PlayerScriptableObject playerScriptableObject;
+        [SerializeField] public Transform projectileContainer;
+
         private ProjectilePool projectilePool;
 
         private List<MonkeyController> activeMonkeys;
         private MonkeyView selectedMonkeyView;
         private int health;
-        public int Money { get; private set; }
+        private int money;
+        public int Money => money;
 
-        public PlayerService(PlayerScriptableObject playerScriptableObject)
+        private void Start()
         {
-            this.playerScriptableObject = playerScriptableObject;
-            projectilePool = new ProjectilePool(this, playerScriptableObject.ProjectilePrefab, playerScriptableObject.ProjectileScriptableObjects);
-        }
-
-        public void Init(MapService mapService, UIService uiService, SoundService soundService)
-        {
-            this.mapService = mapService;
-            this.uiService = uiService;
-            this.soundService = soundService;
+            projectilePool = new ProjectilePool(playerScriptableObject.ProjectilePrefab, playerScriptableObject.ProjectileScriptableObjects, projectileContainer);
             InitializeVariables();
         }
 
         private void InitializeVariables()
         {
-            activeMonkeys = new List<MonkeyController>();
             health = playerScriptableObject.Health;
-            Money = playerScriptableObject.Money;
-            uiService.UpdateHealthUI(health);
-            uiService.UpdateMoneyUI(Money);
+            money = playerScriptableObject.Money;
+            UIService.Instance.UpdateHealthUI(health);
+            UIService.Instance.UpdateMoneyUI(money);
+            activeMonkeys = new List<MonkeyController>();
         }
 
         public void Update()
         {
-            foreach(MonkeyController monkey in activeMonkeys)
-            {
-                monkey?.UpdateMonkey();
-            }
-
             if(Input.GetMouseButtonDown(0))
             {
-                TrySelectingMonkey();
+                UpdateSelectedMonkeyDisplay();
             }
         }
 
-        private void TrySelectingMonkey()
+        private void UpdateSelectedMonkeyDisplay()
         {
-            RaycastHit2D[] hits = GetRaycastHitsAtMousePoition();
+            Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            RaycastHit2D[] hits = Physics2D.RaycastAll(mousePosition, Vector2.zero);
 
-            foreach (RaycastHit2D hit in hits)
+            foreach(RaycastHit2D hit in hits)
             {
                 if(IsMonkeyCollider(hit.collider))
                 {
-                    SetSelectedMonkeyView(hit.collider.GetComponent<MonkeyView>());
+                    selectedMonkeyView?.MakeRangeVisible(false);
+                    selectedMonkeyView = hit.collider.GetComponent<MonkeyView>();
+                    selectedMonkeyView.MakeRangeVisible(true);
                     return;
                 }
             }
@@ -73,77 +63,49 @@ namespace ServiceLocator.Player
             selectedMonkeyView?.MakeRangeVisible(false);
         }
 
-        private RaycastHit2D[] GetRaycastHitsAtMousePoition()
-        {
-            Vector2 mousePosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            return Physics2D.RaycastAll(mousePosition, Vector2.zero);
-        }
-
         private bool IsMonkeyCollider(Collider2D collider) => collider != null && !collider.isTrigger && collider.GetComponent<MonkeyView>() != null;
-
-        private void SetSelectedMonkeyView(MonkeyView monkeyViewToBeSelected)
-        {
-            selectedMonkeyView?.MakeRangeVisible(false);
-            selectedMonkeyView = monkeyViewToBeSelected;
-            selectedMonkeyView.MakeRangeVisible(true);
-        }
-
-        public void ValidateSpawnPosition(int monkeyCost, Vector3 dropPosition)
-        {
-            if (monkeyCost > Money)
-                return;
-
-            mapService.ValidateSpawnPosition(dropPosition);
-        }
 
         public void TrySpawningMonkey(MonkeyType monkeyType, int monkeyCost, Vector3 dropPosition)
         {
-            if (monkeyCost > Money)
+            if (monkeyCost > money)
                 return;
 
-            if (mapService.TryGetMonkeySpawnPosition(dropPosition, out Vector3 spawnPosition))
+            if (MapService.Instance.TryGetMonkeySpawnPosition(dropPosition, out Vector3 spawnPosition))
             {
                 SpawnMonkey(monkeyType, spawnPosition);
-                soundService.PlaySoundEffects(SoundType.SpawnMonkey);
+                SoundService.Instance.PlaySoundEffects(SoundType.SpawnMonkey);
             }
         }
 
         public void SpawnMonkey(MonkeyType monkeyType, Vector3 spawnPosition)
         {
-            MonkeyScriptableObject monkeyScriptableObject = GetMonkeyScriptableObjectByType(monkeyType);
-            MonkeyController monkey = new MonkeyController(soundService, monkeyScriptableObject, projectilePool);
-            
+            MonkeyScriptableObject monkeySO = playerScriptableObject.MonkeyScriptableObjects.Find(so => so.Type == monkeyType);
+            MonkeyController monkey = new MonkeyController(monkeySO, projectilePool);
             monkey.SetPosition(spawnPosition);
             activeMonkeys.Add(monkey);
-            DeductMoney(monkeyScriptableObject.Cost);
-        }
 
-        private MonkeyScriptableObject GetMonkeyScriptableObjectByType(MonkeyType monkeyType) => playerScriptableObject.MonkeyScriptableObjects.Find(so => so.Type == monkeyType);
+            money -= monkeySO.Cost;
+            UIService.Instance.UpdateMoneyUI(money);
+        }
 
         public void ReturnProjectileToPool(ProjectileController projectileToReturn) => projectilePool.ReturnItem(projectileToReturn);
         
         public void TakeDamage(int damageToTake)
         {
-            int reducedHealth = health - damageToTake;
-            health = reducedHealth <= 0 ? 0 : health - damageToTake;
-            
-            uiService.UpdateHealthUI(health);
+            health = health - damageToTake <= 0 ? 0 : health - damageToTake;
+            UIService.Instance.UpdateHealthUI(health);
             if(health <= 0)
+            {
                 PlayerDeath();
-        }
-
-        private void DeductMoney(int moneyToDedecut)
-        {
-            Money -= moneyToDedecut;
-            uiService.UpdateMoneyUI(Money);
+            }
         }
 
         public void GetReward(int reward)
         {
-            Money += reward;
-            uiService?.UpdateMoneyUI(Money);
+            money += reward;
+            UIService.Instance.UpdateMoneyUI(money);
         }
 
-        private void PlayerDeath() => uiService.UpdateGameEndUI(false);
+        private void PlayerDeath() => UIService.Instance.UpdateGameEndUI(false);
     }
 }

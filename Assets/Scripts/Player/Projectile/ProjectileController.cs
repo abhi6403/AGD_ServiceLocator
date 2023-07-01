@@ -1,31 +1,27 @@
 using UnityEngine;
 using ServiceLocator.Wave.Bloon;
-using ServiceLocator.Main;
 
 namespace ServiceLocator.Player.Projectile
 {
     public class ProjectileController
     {
-        private PlayerService playerService;
         private ProjectileView projectileView;
         private ProjectileScriptableObject projectileScriptableObject;
 
         private BloonController target;
-        private ProjectileState currentState;
 
-        public ProjectileController(PlayerService playerService, ProjectileView projectilePrefab, Transform projectileContainer)
+        public ProjectileController(ProjectileView projectilePrefab, Transform projectileContainer)
         {
-            this.playerService = playerService;
             projectileView = Object.Instantiate(projectilePrefab, projectileContainer);
             projectileView.SetController(this);
         }
 
         public void Init(ProjectileScriptableObject projectileScriptableObject)
         {
+            target = null;
             this.projectileScriptableObject = projectileScriptableObject;
             projectileView.SetSprite(projectileScriptableObject.Sprite);
             projectileView.gameObject.SetActive(true);
-            target = null;
         }
 
         public void SetPosition(Vector3 spawnPosition) => projectileView.transform.position = spawnPosition;
@@ -33,7 +29,6 @@ namespace ServiceLocator.Player.Projectile
         public void SetTarget(BloonController target)
         {
             this.target = target;
-            SetState(ProjectileState.ACTIVE);
             RotateTowardsTarget();
         }
 
@@ -46,33 +41,20 @@ namespace ServiceLocator.Player.Projectile
 
         public void UpdateProjectileMotion()
         {
-            if(target != null && currentState == ProjectileState.ACTIVE)
+            if(target != null)
                 projectileView.transform.Translate(Vector2.left * projectileScriptableObject.Speed * Time.deltaTime, Space.Self);
         }
 
         public void OnHitBloon(BloonController bloonHit)
         {
-            if(currentState == ProjectileState.ACTIVE)
-            {
-                bloonHit.TakeDamage(projectileScriptableObject.Damage);
-                ResetProjectile();
-                SetState(ProjectileState.HIT_TARGET);
-            }
+            bloonHit.TakeDamage(projectileScriptableObject.Damage);
+            ResetProjectile();
         }
 
         public void ResetProjectile()
         {
-            target = null;
             projectileView.gameObject.SetActive(false);
-            playerService.ReturnProjectileToPool(this);
+            PlayerService.Instance.ReturnProjectileToPool(this);
         }
-
-        private void SetState(ProjectileState newState) => currentState = newState;
-    }
-
-    public enum ProjectileState
-    {
-        ACTIVE,
-        HIT_TARGET
     }
 }
