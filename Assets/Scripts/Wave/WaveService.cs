@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Threading.Tasks;
 using ServiceLocator.Wave.Bloon;
+using ServiceLocator.Utilities;
 using ServiceLocator.Events;
 using ServiceLocator.UI;
 using ServiceLocator.Map;
 using ServiceLocator.Sound;
-using ServiceLocator.Player;
 
 namespace ServiceLocator.Wave
 {
@@ -18,16 +18,12 @@ namespace ServiceLocator.Wave
         private int currentWaveId;
         private List<WaveData> waveDatas;
         private List<BloonController> activeBloons;
-        private void Start()
-        {
-            InitializeBloons();
-            SubscribeToEvents();
-        }
 
-        private void InitializeBloons()
+        private void Start()
         {
             bloonPool = new BloonPool(waveScriptableObject);
             activeBloons = new List<BloonController>();
+            SubscribeToEvents();
         }
 
         private void SubscribeToEvents() => EventService.Instance.OnMapSelected.AddListener(LoadWaveDataForMap);

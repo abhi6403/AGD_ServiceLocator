@@ -7,7 +7,6 @@ namespace ServiceLocator.Wave.Bloon
 {
     public class BloonController
     {
-
         private BloonView bloonView;
         private BloonScriptableObject bloonScriptableObject;
 
@@ -105,7 +104,7 @@ namespace ServiceLocator.Wave.Bloon
         {
             if (HasLayeredBloons())
                 SpawnLayeredBloons();
-            
+
             PlayerService.Instance.GetReward(bloonScriptableObject.Reward);
             WaveService.Instance.RemoveBloon(this);
         }
@@ -113,9 +112,9 @@ namespace ServiceLocator.Wave.Bloon
         private bool HasLayeredBloons() => bloonScriptableObject.LayeredBloons.Count > 0;
 
         private void SpawnLayeredBloons() => WaveService.Instance.SpawnBloons(bloonScriptableObject.LayeredBloons,
-                                                                     bloonView.transform.position,
-                                                                     currentWaypointIndex,
-                                                                     bloonScriptableObject.LayerBloonSpawnRate);
+                                                                              bloonView.transform.position,
+                                                                              currentWaypointIndex,
+                                                                              bloonScriptableObject.LayerBloonSpawnRate);
 
         public BloonType GetBloonType() => bloonScriptableObject.Type;
 

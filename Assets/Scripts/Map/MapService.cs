@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using ServiceLocator.Utilities;
 using ServiceLocator.Player;
 using ServiceLocator.Events;
-using Object = UnityEngine.Object;
 
 namespace ServiceLocator.Map
 {
@@ -16,7 +15,7 @@ namespace ServiceLocator.Map
         private Tilemap currentTileMap;
         private MapData currentMapData;
         private SpriteRenderer tileOverlay;
-        
+
         private void Start()
         {
             SubscribeToEvents();
@@ -97,9 +96,9 @@ namespace ServiceLocator.Map
 
         private Vector3 GetCenterOfCell(Vector3Int cellPosition) => currentGrid.GetCellCenterWorld(cellPosition);
 
-        private bool CanSpawnOnPosition(Vector3 cellCenter, Vector3Int cellPosition)
+        private bool CanSpawnOnPosition(Vector3 centerCell, Vector3Int cellPosition)
         {
-            Collider2D[] colliders = Physics2D.OverlapCircleAll(cellCenter, 0.1f);
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(centerCell, 0.1f);
             return InisdeTilemapBounds(cellPosition) && !HasClickedOnObstacle(colliders) && !IsOverLappingMonkey(colliders);
         }
 
@@ -124,7 +123,9 @@ namespace ServiceLocator.Map
             foreach (Collider2D collider in colliders)
             {
                 if (collider.gameObject.GetComponent<MonkeyView>() != null && !collider.isTrigger)
+                {
                     return true;
+                }
             }
             return false;
         }

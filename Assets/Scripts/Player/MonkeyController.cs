@@ -18,7 +18,6 @@ namespace ServiceLocator.Player
         {
             this.monkeyScriptableObject = monkeyScriptableObject;
             this.projectilePool = projectilePool;
-
             CreateMonkeyView();
             ResetAttackTimer();
         }
