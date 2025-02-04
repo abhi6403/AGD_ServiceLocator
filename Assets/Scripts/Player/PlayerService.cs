@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using ServiceLocator.Player.Projectile;
 using ServiceLocator.UI;
 using ServiceLocator.Map;
 using ServiceLocator.Sound;
+using Unity.Collections;
 
 namespace ServiceLocator.Player
 {
@@ -12,7 +14,6 @@ namespace ServiceLocator.Player
         [SerializeField] private UIService uiService;
         [SerializeField] private MapService mapService;
         [SerializeField] private SoundService soundService;
-        [SerializeField] private PlayerService playerService;
 
         [SerializeField] public PlayerScriptableObject playerScriptableObject;
 
@@ -21,11 +22,30 @@ namespace ServiceLocator.Player
         private List<MonkeyController> activeMonkeys;
         private MonkeyView selectedMonkeyView;
         private int health;
+
+        public static PlayerService Instance
+        {
+            get { return _instance; }
+        }
+        private static PlayerService _instance;
         public int Money { get; private set; }
+
+        private void Awake()
+        {
+            if (_instance == null)
+            {
+                _instance = this;
+            }
+            else
+            {
+                Destroy(this.gameObject);
+                Debug.LogError("is trying to instantiate more than once");
+            }
+        }
 
         private void Start()
         {
-            projectilePool = new ProjectilePool(playerService, playerScriptableObject.ProjectilePrefab, playerScriptableObject.ProjectileScriptableObjects);
+            projectilePool = new ProjectilePool(playerScriptableObject.ProjectilePrefab, playerScriptableObject.ProjectileScriptableObjects);
             InitializeVariables();
         }
 
