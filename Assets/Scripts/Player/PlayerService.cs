@@ -9,7 +9,7 @@ using Unity.Collections;
 
 namespace ServiceLocator.Player
 {
-    public class PlayerService : MonoBehaviour
+    public class PlayerService : GenericMonoSingleton<PlayerService>
     {
 
         [SerializeField] public PlayerScriptableObject playerScriptableObject;
@@ -19,26 +19,7 @@ namespace ServiceLocator.Player
         private List<MonkeyController> activeMonkeys;
         private MonkeyView selectedMonkeyView;
         private int health;
-
-        public static PlayerService Instance
-        {
-            get { return _instance; }
-        }
-        private static PlayerService _instance;
         public int Money { get; private set; }
-
-        private void Awake()
-        {
-            if (_instance == null)
-            {
-                _instance = this;
-            }
-            else
-            {
-                Destroy(this.gameObject);
-                Debug.LogError("is trying to instantiate more than once");
-            }
-        }
 
         private void Start()
         {
