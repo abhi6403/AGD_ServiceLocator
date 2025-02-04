@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using ServiceLocator.Player;
 using ServiceLocator.Events;
+using Object = UnityEngine.Object;
 
 namespace ServiceLocator.Map
 {
@@ -15,6 +17,22 @@ namespace ServiceLocator.Map
         private Tilemap currentTileMap;
         private MapData currentMapData;
         private SpriteRenderer tileOverlay;
+        
+        public static MapService Instance { get { return instance; } }
+        private static MapService instance;
+
+        private void Awake()
+        {
+            if (instance == null)
+            {
+                instance = this;
+            }
+            else
+            {
+                Destroy(gameObject);
+                Debug.LogError("is trying to instantiate more than once");
+            }
+        }
 
         private void Start()
         {
