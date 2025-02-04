@@ -12,7 +12,6 @@ namespace ServiceLocator.UI
     public class UIService : MonoBehaviour
     {
         [SerializeField] private EventService eventService;
-        [SerializeField] private WaveService waveService;
 
         [Header("Gameplay Panel")]
         [SerializeField] private GameObject gameplayPanel;
@@ -39,6 +38,24 @@ namespace ServiceLocator.UI
         [SerializeField] private Button playAgainButton;
         [SerializeField] private Button quitButton;
 
+        public static UIService Instance
+        {
+            get { return instance; }
+        }
+        private static UIService instance;
+        
+        private void Awake()
+        {
+            if (instance == null)
+            {
+                instance = this;
+            }
+            else
+            {
+                Destroy(this.gameObject);
+                Debug.LogError("is trying to instantiate more than once");
+            }
+        }
 
         private void Start()
         {
@@ -70,7 +87,7 @@ namespace ServiceLocator.UI
 
         private void OnNextWaveButton()
         {
-            waveService.StarNextWave();
+            WaveService.Instance.StarNextWave();
             SetNextWaveButton(false);
         }
 
